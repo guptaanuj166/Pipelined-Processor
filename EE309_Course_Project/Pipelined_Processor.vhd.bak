@@ -1,0 +1,62 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity Processor is
+port (clk1,clk2 : in std_logic);
+end entity;
+
+architecture Pipelined of Processor is
+--signal count : integer:= 1;
+signal  PC, IF_ID_PC, IF_ID_IR, ID_RR_PC, ID_RR_IMM6, ID_RR_IMM9, ID_RR_IR, RR_EX_IR, RR_EX_PC,
+RR_EX_D1,RR_EX_D2, RR_EX_IMM6, RR_EX_IMM9, EX_MEM_IMM9, EX_MEM_ALUC, MEM_WB_IMM9, MEM_WB_ALUC,
+MEM_WB_Dout: std_logic_vector(15 downto 0);
+
+signal ID_RR_RA, ID_RR_RB, ID_RR_RC, RR_EX_RA, RR_EX_RB, RR_EX_RC, EX_MEM_RA, EX_MEM_RB,
+EX_MEM_RC, MEM_WB_RA, MEM_WB_RB, MEM_WB_RC :std_logic_vector(2 downto 0);
+
+signal ID_RR_CMP, IF_ID_BRANCH, ID_IR_BRANCH, RR_EX_BRANCH, EX_MEM_BRANCH, MEM_WB_BRANCH : std_logic;
+
+signal ID_RR_CZ :std_logic_vector(1 downto 0);
+
+type REGISTER_FILE is array (0 to 7) of std_logic_vector(15 downto 0);
+
+type INSTMEM is array (0 to 255) of std_logic_vector(15 downto 0);
+signal INST_MEM : INSTMEM;
+
+type DATAMEM is array (0 to 255) of std_logic_vector(15 downto 0);
+signal DATA_MEM : DATAMEM;
+
+begin
+
+Instruction_Fetch:process(clk1)
+begin
+if(clk1='1' and clk1' event) then
+
+if((RR_EX_IR(15 downto 12)="1000" and RR_EX_D1=RR_EX_D2) or (RR_EX_IR(15 downto 12)="1001" and RR_EX_D1<RR_EX_D2)
+ or (RR_EX_IR(15 downto 12)="1011" and (not(RR_EX_D1>RR_EX_D2)))) then
+ 
+ PC <= std_logic_vector(unsigned(PC) + unsigned(RR_EX_IMM6));
+ IF_ID_BRANCH <= '1';
+ 
+ 
+ elsif(RR_EX_IR(15 downto 12)="1100") then
+ 
+ PC <= std_logic_vector(unsigned(PC) + unsigned(RR_EX_IMM6));
+ 
+ elsif(RR_EX_IR(15 downto 12)="1101") then
+ 
+ PC <= RR_EX_D2;
+ 
+ elsif(RR_EX_IR(15 downto 12)="1111") then
+ 
+ PC <= EX_MEM_ALUC;
+ 
+ else
+ 
+ PC <= std_logic_vector(unsigned(PC) + 1);
+end if;
+end if;
+IF_ID_IR <= INST_MEM(to_integer(unsigned(PC)));
+end process Instruction_Fetch;
+end Pipelined;
